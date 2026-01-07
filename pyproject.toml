@@ -1,0 +1,13 @@
+[project]
+name = "trocr-ka"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = "==3.10.*"
+dependencies = [
+    "arabic-reshaper>=3.0.0",
+    "diffimg>=0.3.0",
+    "opencv-python-headless>=4.12.0.88",
+    "pillow<10.0.0",
+    "python-bidi>=0.6.7",
+    "trdg>=0.1.1",
+]
