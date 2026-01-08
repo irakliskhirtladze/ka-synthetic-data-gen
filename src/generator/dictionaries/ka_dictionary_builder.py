@@ -187,60 +187,6 @@ class GeorgianDictionaryBuilder:
         print(f"Saved weighted dictionary to {weighted_path}")
 
 
-def get_random_word(dict_path: Path = None):
-    """Get a random word from the dictionary with frequency weighting"""
-    if dict_path is None:
-        dict_path = BASE_DIR / "src" / "generator" / "dictionaries" / "ka_dictionary.json"
-
-    with open(dict_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    words = data["words"]
-
-    if not words:  # Add this check
-        return get_random_sequence()
-
-    weights = [w["weight"] for w in words]
-    chosen = random.choices(words, weights=weights, k=1)[0]
-    return chosen["word"]
-
-
-def get_random_sequence(length: int = None) -> str:
-    """Generate random sequence of Georgian characters"""
-    chars = "აბგდევზთიკლმნოპჟრსტუფქღყშჩცძწჭხჯჰ"
-    if length is None:
-        length = random.randint(3, 12)
-    return "".join(random.choice(chars) for _ in range(length))
-
-
-def get_random_number() -> str:
-    """Generate random number or date"""
-    choice = random.random()
-
-    if choice < 0.3:  # Simple number
-        return str(random.randint(0, 9999))
-    elif choice < 0.6:  # Date DD.MM.YYYY
-        day = random.randint(1, 28)
-        month = random.randint(1, 12)
-        year = random.randint(1900, 2025)
-        return f"{day:02d}.{month:02d}.{year}"
-    elif choice < 0.8:  # Year only
-        return str(random.randint(1800, 2025))
-    else:  # Phone-like number
-        return f"+995{random.randint(500000000, 599999999)}"
-
-
-def get_mixed_text() -> str:
-    """Generate mixed Georgian text with numbers"""
-    word = get_random_sequence(random.randint(3, 8))
-    number = str(random.randint(1, 999))
-
-    if random.random() < 0.5:
-        return f"{word}{number}"
-    else:
-        return f"{number}{word}"
-
-
 if __name__ == "__main__":
     builder = GeorgianDictionaryBuilder()
 
@@ -258,15 +204,3 @@ if __name__ == "__main__":
     for i, item in enumerate(dictionary['words'][:20], 1):
         print(f"  {i}. {item['word']} (frequency: {item['frequency']})")
 
-    print("\n=== Testing random sampling ===")
-    print("Random words (frequency-weighted):")
-    for _ in range(10):
-        print(f"  - {get_random_word(output_dir / 'ka_dictionary.json')}")
-
-    print("\nRandom character sequences:")
-    for _ in range(5):
-        print(f"  - {get_random_sequence()}")
-
-    print("\nRandom numbers/dates:")
-    for _ in range(5):
-        print(f"  - {get_random_number()}")
