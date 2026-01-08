@@ -133,13 +133,12 @@ def generate_imgs(num_images_per_font):
                     text = get_random_sequence()
             else:
                 # Font with number support: 90% real words, 7% random sequences, 3% numbers
-                # if source_type < 0.9:
-                #     text = get_random_word(word_list, weights)
-                # elif source_type < 0.97:
-                #     text = get_random_sequence()
-                # else:
-                #     text = get_random_number()
-                text = "-"
+                if source_type < 0.9:
+                    text = get_random_word(word_list, weights)
+                elif source_type < 0.97:
+                    text = get_random_sequence()
+                else:
+                    text = get_random_number()
             
             strings.append(text)
         
@@ -187,4 +186,4 @@ def generate_imgs(num_images_per_font):
 
 
 if __name__ == "__main__":
-    generate_imgs(1)
+    generate_imgs(1000)
