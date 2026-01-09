@@ -4,7 +4,10 @@ from utils import BASE_DIR
 from pathlib import Path
 import csv
 import random
-from PIL import ImageFont, ImageDraw, Image
+import os
+import zipfile
+from huggingface_hub import HfApi
+from dotenv import load_dotenv
 
 
 def load_dictionary(dict_path: Path = None) -> tuple[list, list]:
@@ -163,7 +166,7 @@ def generate_imgs(num_images_per_font):
             img = next(generator)
             
             if img is None:
-                print(f"  Warning: Generator returned None for '{text}'. Skipping...")
+                print(f"Warning: Generator returned None for '{text}'. Skipping...")
                 continue
 
             file_name = f"{font_name}_{idx:04d}.png"
@@ -172,7 +175,7 @@ def generate_imgs(num_images_per_font):
             img.save(img_save_path)
             metadata.append({"file_name": file_name, "text": text})
         
-        print(f"  Generated {len(strings)} images for {font_name}")
+        print(f"Generated {len(strings)} images for {font_name}")
 
     # Write Labels to CSV
     csv_path = BASE_DIR / "data" / "metadata.csv"
@@ -186,15 +189,70 @@ def generate_imgs(num_images_per_font):
 
 
 def dataset_to_hf():
-    """allows user to automatically prepare dataset and push it to Hugging Face Hub."""
-    user_response = input("\nWould you like to zip dataset and push to HF? (y/n) ")
-    if user_response.lower() == "y":
-        # create zip in data/, add images to it's root from raw/ and then add metadata.csv to it as well
-        pass
-
-        # Set up HF using access token and dataset address
-        pass
-
-        # Push zip file to HF
-        pass
+    """Allows user to automatically prepare dataset and push it to Hugging Face Hub."""
+    load_dotenv()
+    
+    user_response = input("\nWould you like to zip dataset and push to HF? (y/n): ")
+    if user_response.lower() != "y":
+        print("Skipping HF upload.")
+        return
+    
+    # Check for required environment variables
+    hf_token = os.getenv("HF_TOKEN")
+    hf_dataset_repo = os.getenv("HF_DATASET_REPO")
+    
+    if not hf_token:
+        print("Error: HF_TOKEN not found in .env file")
+        return
+    
+    if not hf_dataset_repo:
+        print("Error: HF_DATASET_REPO not found in .env file")
+        return
+    
+    data_dir = BASE_DIR / "data"
+    raw_dir = data_dir / "raw"
+    metadata_file = data_dir / "metadata.csv"
+    zip_path = data_dir / "ka-ocr.zip"
+    
+    # Verify data exists
+    if not raw_dir.exists() or not metadata_file.exists():
+        print("Error: Dataset not found. Run generate_imgs() first.")
+        return
+    
+    # Count images
+    image_files = list(raw_dir.glob("*.png"))
+    if not image_files:
+        print("Error: No images found in data/raw/")
+        return
+    
+    print(f"\nCreating zip file with {len(image_files)} images...")
+    
+    # Create zip file
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        # Add all images to zip root
+        for img_file in image_files:
+            zipf.write(img_file, arcname=img_file.name)
+        
+        # Add metadata.csv to zip root
+        zipf.write(metadata_file, arcname="metadata.csv")
+    
+    zip_size_mb = zip_path.stat().st_size / (1024 * 1024)
+    print(f"Created {zip_path.name} ({zip_size_mb:.2f} MB)")
+    
+    # Push to Hugging Face
+    print(f"\nPushing to Hugging Face: {hf_dataset_repo}")
+    try:
+        api = HfApi()
+        api.upload_file(
+            path_or_fileobj=str(zip_path),
+            path_in_repo="ka-ocr.zip",
+            repo_id=hf_dataset_repo,
+            repo_type="dataset",
+            token=hf_token
+        )
+        print(f"Successfully uploaded to https://huggingface.co/datasets/{hf_dataset_repo}")
+        print(f"File: ka-ocr.zip ({zip_size_mb:.2f} MB)")
+    except Exception as e:
+        print(f"Failed to upload to Hugging Face: {e}")
+        print(f"Zip file saved locally at: {zip_path}")
 
