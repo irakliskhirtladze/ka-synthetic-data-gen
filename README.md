@@ -2,8 +2,22 @@
 
 Generate synthetic Georgian text images for OCR training.
 
+The program uses dictionary of >100000 unique Georgian words,
+which were extracted from scientific and fictional texts and from wikipedia
+pages.
+
+Words have weights based on their frequency in abovementioned sources.
+The weights are used during image generation to reflect natural 
+frequency in the language.
+
+Dictionary files are located at: src/generator/dictionaries/
+
+Additionally, during generation ~7% of images will have random character
+sequences to reflect typos in words and very rare or specific words.
+~3% will have random numerical text.
+
 ## Setup
-Using Python 3.10 and UV (not pip) is strongly recommended to avoid dependency hell.
+Using Python 3.10 and UV is strongly recommended to avoid dependency hell.
 
 1. **Install dependencies:**
    ```bash
@@ -20,19 +34,7 @@ Using Python 3.10 and UV (not pip) is strongly recommended to avoid dependency h
 
 ## Usage
 
-### Generate Dataset
-
-Edit `src/main.py` to set the number of images per font:
-
-```python
-from generator.gen import generate_imgs, dataset_to_hf
-
-if __name__ == "__main__":
-    generate_imgs(100)  # Generate 100 images per font
-    dataset_to_hf()
-```
-
-Then run:
+### Run
 
 ```bash
 python src/main.py
@@ -45,6 +47,8 @@ python src/main.py
    - 90% real Georgian words (from 100k+ word dictionary)
    - 7% random character sequences
    - 3% numbers/dates (except 4 fonts that do not support them)
+   - Program supports both sequential and parallel data generation.
+   The latter can produce dataset few times faster, so it's generally recommended.
 
 2. **Upload to HF** (optional): 
    - Prompts you to zip and upload to Hugging Face
@@ -66,6 +70,6 @@ data/
 
 ## Notes
 
-- Entire `data/` directory is gitignored
-- Model training should be done separately on Kaggle
-- This repo is for dataset generation only
+- Entire `data/` directory is gitignored.
+- This repo is for dataset generation only,
+use generated dataset for model training wherever suitable.

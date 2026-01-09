@@ -194,12 +194,12 @@ def generate_imgs(num_images_per_font: int):
     ]
 
     # Run image generation either with multiple CPU cores, or sequentially
-    print("\nParallel image generation can be few times faster if multiple CPU cores are available")
-    user_input = input("Type 'y' for parallel processing, or any other key for sequential generation: ")
-    if user_input.lower() == "y":
-        use_parallel = True
-    else:
+    print("\nParallel image generation can be few times faster and thus recommended...")
+    user_input = input("Type 's' for sequential processing, or any other key for parallel generation: ")
+    if user_input.lower() == "s":
         use_parallel = False
+    else:
+        use_parallel = True
 
     t1 = time.perf_counter()
     if use_parallel:
