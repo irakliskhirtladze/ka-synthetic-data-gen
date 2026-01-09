@@ -1,4 +1,6 @@
 import json
+import time
+
 from trdg.generators import GeneratorFromStrings
 from utils import BASE_DIR
 from pathlib import Path
@@ -6,6 +8,7 @@ import csv
 import random
 import os
 import zipfile
+from concurrent.futures import ProcessPoolExecutor
 from huggingface_hub import HfApi
 from dotenv import load_dotenv
 
@@ -79,7 +82,79 @@ def font_not_supports_numbers(font_path: str) -> bool:
     return font_name in fonts_without_numbers
 
 
-def generate_imgs(num_images_per_font):
+def _generate_for_font(args: tuple) -> list[dict]:
+    """Worker function: generates all images for a single font.
+    
+    Args:
+        args: Tuple of (font_path, num_images, word_list, weights, output_dir, no_number_support)
+    
+    Returns:
+        List of metadata dicts for generated images
+    """
+    font_path, num_images, word_list, weights, output_dir, no_number_support = args
+    font_name = Path(font_path).stem
+    metadata = []
+    
+    # Generate text strings for this font
+    strings = []
+    for _ in range(num_images):
+        source_type = random.random()
+        
+        if no_number_support:
+            if source_type < 0.9:
+                text = get_random_word(word_list, weights, exclude_special_chars=True)
+            else:
+                text = get_random_sequence()
+        else:
+            if source_type < 0.9:
+                text = get_random_word(word_list, weights)
+            elif source_type < 0.97:
+                text = get_random_sequence()
+            else:
+                text = get_random_number()
+        
+        strings.append(text)
+    
+    # Generate images one string at a time
+    for idx, text in enumerate(strings):
+        generator = GeneratorFromStrings(
+            strings=[text],
+            fonts=[font_path],
+            language="ka",
+            size=64,
+            skewing_angle=5,
+            random_skew=True,
+            blur=1,
+            random_blur=True,
+            distorsion_type=3,
+            distorsion_orientation=2,
+            background_type=0,
+            text_color="#000000,#1a1a1a,#333333,#2b1a1a,#1a0f0f,#3d2b2b,#4a0000,#2d1f1f"
+        )
+        
+        img = next(generator)
+        
+        if img is None:
+            continue
+
+        file_name = f"{font_name}_{idx:04d}.png"
+        img_save_path = Path(output_dir) / file_name
+        
+        img.save(img_save_path)
+        metadata.append({"file_name": file_name, "text": text})
+
+    print(f"Generated {len(metadata)} images for {font_name}")
+    
+    return metadata
+
+
+def generate_imgs(num_images_per_font: int):
+    """Generate synthetic images for all fonts.
+    
+    Args:
+        num_images_per_font: Number of images to generate per font
+        parallel_threshold: Use parallel processing if num_images_per_font >= this value
+    """
     ka_font_dir = BASE_DIR / "src" / "generator" / "fonts" / "ka"
     output_dir = BASE_DIR / "data" / "raw"
     dict_path = BASE_DIR / "src" / "generator" / "dictionaries" / "ka_dictionary.json"
@@ -101,81 +176,50 @@ def generate_imgs(num_images_per_font):
         print(f"Fonts without number support: {', '.join(fonts_no_nums)}\n")
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    metadata = []
     
     print(f"Generating images for {len(fonts)} fonts...")
     print(f"Images per font: {num_images_per_font}")
     print(f"Total images to generate: {len(fonts) * num_images_per_font}")
-    print(f"Distribution: 90% real words, 7% random sequences, 3% numbers (font-dependent)\n")
+    print(f"Distribution: 90% real words, 7% random sequences, 3% numbers (font-dependent)")
 
     # Load dictionary
-    print("Loading dictionary...")
+    print("\nLoading dictionary...")
     word_list, weights = load_dictionary(dict_path)
-    print(f"Loaded {len(word_list)} words with frequency weights\n")
+    print(f"Loaded {len(word_list)} words with frequency weights")
 
-    # Generation Loop
-    for font_idx, font_path in enumerate(fonts):
-        font_name = Path(font_path).stem
-        print(f"[{font_idx+1}/{len(fonts)}] Processing font: {font_name}")
-        
-        # Check if this font does NOT support numbers
-        no_number_support = fonts_without_number_support[font_path]
-        
-        # Generate text strings for this font
-        strings = []
-        for _ in range(num_images_per_font):
-            source_type = random.random()
-            
-            # Adjust distribution based on font capabilities
-            if no_number_support:
-                # Georgian-only font: 90% real words, 10% random sequences
-                # Exclude words with hyphens or numbers for these fonts
-                if source_type < 0.9:
-                    text = get_random_word(word_list, weights, exclude_special_chars=True)
-                else:
-                    text = get_random_sequence()
-            else:
-                # Font with number support: 90% real words, 7% random sequences, 3% numbers
-                if source_type < 0.9:
-                    text = get_random_word(word_list, weights)
-                elif source_type < 0.97:
-                    text = get_random_sequence()
-                else:
-                    text = get_random_number()
-            
-            strings.append(text)
-        
-        # Generate images one string at a time to control output
-        for idx, text in enumerate(strings):
-            generator = GeneratorFromStrings(
-                strings=[text],  # Single string at a time
-                fonts=[font_path],
-                language="ka",
-                size=64,  # Height of the generated image in pixels. Width is based on text length
-                skewing_angle=5,  # Maximum angle for text skewing/rotation
-                random_skew=True,  # Randomly applies skewing within the angle range
-                blur=1,  # blur intensity: 0 - no blur, 3 - heavy blur
-                random_blur=True,  # randomly applies blur 0 to specified blur value
-                distorsion_type=3,  # Type of geometric distortion applied. 3 means mix of sine/cosine
-                distorsion_orientation=2,  # Direction of distortion effect
-                background_type=0,  # Background style: 0 - gaussian, 1 - white, 2 - Quasicrystal pattern, 3 - image
-                text_color="#000000,#1a1a1a,#333333,#2b1a1a,#1a0f0f,#3d2b2b,#4a0000,#2d1f1f"
-            )
-            
-            # Get the first (and should be only) image
-            img = next(generator)
-            
-            if img is None:
-                print(f"Warning: Generator returned None for '{text}'. Skipping...")
-                continue
+    # Prepare args for each font
+    font_args = [
+        (font_path, num_images_per_font, word_list, weights, str(output_dir), fonts_without_number_support[font_path])
+        for font_path in fonts
+    ]
 
-            file_name = f"{font_name}_{idx:04d}.png"
-            img_save_path = output_dir / file_name
-            
-            img.save(img_save_path)
-            metadata.append({"file_name": file_name, "text": text})
+    # Run image generation either with multiple CPU cores, or sequentially
+    print("\nParallel image generation can be few times faster if multiple CPU cores are available")
+    user_input = input("Type 'y' for parallel processing, or any other key for sequential generation: ")
+    if user_input.lower() == "y":
+        use_parallel = True
+    else:
+        use_parallel = False
+
+    t1 = time.perf_counter()
+    if use_parallel:
+        num_workers = min(os.cpu_count() or 1, len(fonts))
+        print(f"\nUsing parallel processing with {num_workers} workers...\n")
         
-        print(f"Generated {len(strings)} images for {font_name}")
+        with ProcessPoolExecutor(max_workers=num_workers) as executor:
+            results = list(executor.map(_generate_for_font, font_args))
+        
+        metadata = [item for result in results for item in result]
+    else:
+        print("\nUsing sequential processing...\n")
+        metadata = []
+        for font_idx, args in enumerate(font_args):
+            font_name = Path(args[0]).stem
+            print(f"[{font_idx+1}/{len(fonts)}] Processing font: {font_name}")
+            result = _generate_for_font(args)
+            metadata.extend(result)
+    t2 = time.perf_counter()
+    print(f"\nDone in {(t2 - t1)} seconds")
 
     # Write Labels to CSV
     csv_path = BASE_DIR / "data" / "metadata.csv"

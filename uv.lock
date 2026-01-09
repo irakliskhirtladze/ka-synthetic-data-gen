@@ -215,6 +215,37 @@ wheels = [
 ]
 
 [[package]]
+name = "ka-synthetic-data-gen"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "arabic-reshaper" },
+    { name = "diffimg" },
+    { name = "huggingface-hub" },
+    { name = "opencv-python-headless" },
+    { name = "pillow" },
+    { name = "pymupdf" },
+    { name = "python-bidi" },
+    { name = "python-docx" },
+    { name = "python-dotenv" },
+    { name = "trdg" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "arabic-reshaper", specifier = ">=3.0.0" },
+    { name = "diffimg", specifier = ">=0.3.0" },
+    { name = "huggingface-hub", specifier = ">=1.2.4" },
+    { name = "opencv-python-headless", specifier = ">=4.12.0.88" },
+    { name = "pillow", specifier = "<10.0.0" },
+    { name = "pymupdf", specifier = ">=1.26.7" },
+    { name = "python-bidi", specifier = ">=0.6.7" },
+    { name = "python-docx", specifier = ">=1.2.0" },
+    { name = "python-dotenv", specifier = ">=1.2.1" },
+    { name = "trdg", specifier = ">=0.1.1" },
+]
+
+[[package]]
 name = "lxml"
 version = "6.0.2"
 source = { registry = "https://pypi.org/simple" }
@@ -462,37 +493,6 @@ dependencies = [
     { name = "tqdm" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/2f/06/f29c7989154a97fd2928ad42b299b49090cc43838f56a876f4d40da4ec01/trdg-0.1.1.tar.gz", hash = "sha256:685ecc5db4029a0c9f3cc81a5cf03f3f2ca652e58ed12d90fdc7fcb3056d013d", size = 47542725, upload-time = "2019-08-29T17:25:55.367Z" }
-
-[[package]]
-name = "trocr-ka"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "arabic-reshaper" },
-    { name = "diffimg" },
-    { name = "huggingface-hub" },
-    { name = "opencv-python-headless" },
-    { name = "pillow" },
-    { name = "pymupdf" },
-    { name = "python-bidi" },
-    { name = "python-docx" },
-    { name = "python-dotenv" },
-    { name = "trdg" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "arabic-reshaper", specifier = ">=3.0.0" },
-    { name = "diffimg", specifier = ">=0.3.0" },
-    { name = "huggingface-hub", specifier = ">=1.2.4" },
-    { name = "opencv-python-headless", specifier = ">=4.12.0.88" },
-    { name = "pillow", specifier = "<10.0.0" },
-    { name = "pymupdf", specifier = ">=1.26.7" },
-    { name = "python-bidi", specifier = ">=0.6.7" },
-    { name = "python-docx", specifier = ">=1.2.0" },
-    { name = "python-dotenv", specifier = ">=1.2.1" },
-    { name = "trdg", specifier = ">=0.1.1" },
-]
 
 [[package]]
 name = "typer-slim"
