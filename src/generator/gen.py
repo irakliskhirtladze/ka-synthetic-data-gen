@@ -175,7 +175,7 @@ def generate_imgs(num_images_per_font):
         print(f"  Generated {len(strings)} images for {font_name}")
 
     # Write Labels to CSV
-    csv_path = BASE_DIR / "data" / "labels.csv"
+    csv_path = BASE_DIR / "data" / "metadata.csv"
     with open(csv_path, mode="w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["file_name", "text"])
         writer.writeheader()
@@ -185,5 +185,16 @@ def generate_imgs(num_images_per_font):
     print(f"✓ Labels saved to {csv_path}")
 
 
-if __name__ == "__main__":
-    generate_imgs(1000)
+def dataset_to_hf():
+    """allows user to automatically prepare dataset and push it to Hugging Face Hub."""
+    user_response = input("\nWould you like to zip dataset and push to HF? (y/n) ")
+    if user_response.lower() == "y":
+        # create zip in data/, add images to it's root from raw/ and then add metadata.csv to it as well
+        pass
+
+        # Set up HF using access token and dataset address
+        pass
+
+        # Push zip file to HF
+        pass
+
