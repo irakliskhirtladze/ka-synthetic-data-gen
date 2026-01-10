@@ -272,9 +272,12 @@ def dataset_to_hf():
     print(f"\nCreating zip file with {len(image_files)} images...")
     
     # Create zip file
+    t1 = time.perf_counter()
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
         # Add all images to zip root
-        for img_file in image_files:
+        num_images = len(image_files)
+        for i, img_file in enumerate(image_files):
+            print(f"\radding image {i+1}/{num_images}...", end="", flush=True)
             zipf.write(img_file, arcname=img_file.name)
         
         # Add metadata.csv to zip root
@@ -282,6 +285,8 @@ def dataset_to_hf():
     
     zip_size_mb = zip_path.stat().st_size / (1024 * 1024)
     print(f"Created {zip_path.name} ({zip_size_mb:.2f} MB)")
+    t2 = time.perf_counter()
+    print(f"Zipped in {(t2 - t1)} seconds")
     
     # Push to Hugging Face
     print(f"\nPushing to Hugging Face: {hf_dataset_repo}")
