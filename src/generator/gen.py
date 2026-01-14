@@ -137,11 +137,13 @@ def _generate_for_font(args: tuple) -> list[dict]:
         if img is None:
             continue
 
+        image_group_dir = Path(output_dir) / font_name
+        image_group_dir.mkdir(parents=True, exist_ok=True)
         file_name = f"{font_name}_{idx:04d}.png"
-        img_save_path = Path(output_dir) / file_name
+        img_save_path = Path(image_group_dir) / file_name
         
         img.save(img_save_path)
-        metadata.append({"file_name": file_name, "text": text})
+        metadata.append({"file_name": f"{image_group_dir.stem}/{file_name}", "text": text})
 
     print(f"Generated {len(metadata)} images for {font_name}")
     
@@ -194,8 +196,8 @@ def generate_imgs(num_images_per_font: int):
     ]
 
     # Run image generation either with multiple CPU cores, or sequentially
-    print("\nParallel image generation can be few times faster and thus recommended...")
-    user_input = input("Type 's' for sequential processing, or any other key for parallel generation: ")
+    print("\nParallel image generation can be few times faster...")
+    user_input = input("Type 'S' for sequential processing, or any other key for parallel generation: ")
     if user_input.lower() == "s":
         use_parallel = False
     else:
@@ -232,14 +234,48 @@ def generate_imgs(num_images_per_font: int):
     print(f"✓ Labels saved to {csv_path}")
 
 
-def dataset_to_hf():
-    """Allows user to automatically prepare dataset and push it to Hugging Face Hub."""
-    load_dotenv()
+def zip_dataset():
+    """Zip the dataset preserving font subdirectory structure."""
+    data_dir = BASE_DIR / "data"
+    raw_dir = data_dir / "raw"
+    metadata_file = data_dir / "metadata.csv"
+    zip_path = data_dir / "ka-ocr.zip"
     
-    user_response = input("\nWould you like to zip dataset and push to HF? (y/n): ")
-    if user_response.lower() != "y":
-        print("Skipping HF upload.")
+    # Verify data exists
+    if not raw_dir.exists() or not metadata_file.exists():
+        print("Error: Dataset not found. Run generate_imgs() first.")
         return
+    
+    # Find all images in subdirectories
+    image_files = list(raw_dir.glob("**/*.png"))
+    if not image_files:
+        print("Error: No images found in data/raw/")
+        return
+    
+    print(f"\nCreating zip file with {len(image_files)} images...")
+    
+    # Create zip file preserving subdirectory structure
+    t1 = time.perf_counter()
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        num_images = len(image_files)
+        for i, img_file in enumerate(image_files):
+            print(f"\radding image {i+1}/{num_images}...", end="", flush=True)
+            # Preserve font subdirectory: FontName/FontName_0001.png
+            arcname = img_file.relative_to(raw_dir)
+            zipf.write(img_file, arcname=arcname)
+        
+        # Add metadata.csv to zip root
+        zipf.write(metadata_file, arcname="metadata.csv")
+    
+    zip_size_mb = zip_path.stat().st_size / (1024 * 1024)
+    t2 = time.perf_counter()
+    print(f"\nCreated {zip_path.name} ({zip_size_mb:.2f} MB)")
+    print(f"Zipped in {(t2 - t1):.2f} seconds")
+
+
+def dataset_to_hf():
+    """Upload existing zip file to Hugging Face Hub."""
+    load_dotenv()
     
     # Check for required environment variables
     hf_token = os.getenv("HF_TOKEN")
@@ -253,40 +289,14 @@ def dataset_to_hf():
         print("Error: HF_DATASET_REPO not found in .env file")
         return
     
-    data_dir = BASE_DIR / "data"
-    raw_dir = data_dir / "raw"
-    metadata_file = data_dir / "metadata.csv"
-    zip_path = data_dir / "ka-ocr.zip"
+    zip_path = BASE_DIR / "data" / "ka-ocr.zip"
     
-    # Verify data exists
-    if not raw_dir.exists() or not metadata_file.exists():
-        print("Error: Dataset not found. Run generate_imgs() first.")
+    if not zip_path.exists():
+        print(f"Error: Zip file not found at {zip_path}")
+        print("Run zip_dataset() first.")
         return
-    
-    # Count images
-    image_files = list(raw_dir.glob("*.png"))
-    if not image_files:
-        print("Error: No images found in data/raw/")
-        return
-    
-    print(f"\nCreating zip file with {len(image_files)} images...")
-    
-    # Create zip file
-    t1 = time.perf_counter()
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        # Add all images to zip root
-        num_images = len(image_files)
-        for i, img_file in enumerate(image_files):
-            print(f"\radding image {i+1}/{num_images}...", end="", flush=True)
-            zipf.write(img_file, arcname=img_file.name)
-        
-        # Add metadata.csv to zip root
-        zipf.write(metadata_file, arcname="metadata.csv")
     
     zip_size_mb = zip_path.stat().st_size / (1024 * 1024)
-    print(f"Created {zip_path.name} ({zip_size_mb:.2f} MB)")
-    t2 = time.perf_counter()
-    print(f"Zipped in {(t2 - t1)} seconds")
     
     # Push to Hugging Face
     print(f"\nPushing to Hugging Face: {hf_dataset_repo}")
