@@ -117,19 +117,36 @@ def _generate_for_font(args: tuple) -> list[dict]:
     
     # Generate images one string at a time
     for idx, text in enumerate(strings):
+        # generator = GeneratorFromStrings(
+        #     strings=[text],
+        #     fonts=[font_path],
+        #     language="ka",
+        #     size=64,
+        #     skewing_angle=5,
+        #     random_skew=True,
+        #     blur=1,
+        #     random_blur=True,
+        #     distorsion_type=3,
+        #     distorsion_orientation=2,
+        #     background_type=0,
+        #     text_color="#000000,#1a1a1a,#333333,#2b1a1a,#1a0f0f,#3d2b2b,#4a0000,#2d1f1f"
+        # )
         generator = GeneratorFromStrings(
             strings=[text],
             fonts=[font_path],
             language="ka",
-            size=64,
-            skewing_angle=5,
+            size=random.randint(32, 96),
+            skewing_angle=random.randint(0, 15),
             random_skew=True,
-            blur=1,
+            blur=random.randint(0, 1),
             random_blur=True,
-            distorsion_type=3,
-            distorsion_orientation=2,
-            background_type=0,
-            text_color="#000000,#1a1a1a,#333333,#2b1a1a,#1a0f0f,#3d2b2b,#4a0000,#2d1f1f"
+            distorsion_type=random.randint(0, 3),  # 0=none, 1=sine, 2=cosine, 3=random
+            distorsion_orientation=random.randint(0, 2),
+            background_type=random.randint(0, 2),  # 0=gaussian, 1=plain white, 2=quasicrystal, 3=image
+            text_color="#000000,#1a1a1a,#333333,#2b1a1a,#1a0f0f,#3d2b2b,#4a0000,#2d1f1f",
+            margins=(random.randint(0, 10), random.randint(0, 10), random.randint(0, 10),
+                     random.randint(0, 10)),
+            fit=random.choice([True, False]),
         )
         
         img = next(generator)
