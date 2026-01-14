@@ -195,14 +195,19 @@ def generate_imgs(num_images_per_font: int):
         for font_path in fonts
     ]
 
-    # Run image generation either with multiple CPU cores, or sequentially
-    print("\nParallel image generation can be few times faster...")
-    user_input = input("Type 'S' for sequential processing, or any other key for parallel generation: ")
-    if user_input.lower() == "s":
-        use_parallel = False
-    else:
-        use_parallel = True
+    # Ask user model of image generation
+    while True:
+        user_input = input("\nDo you want to do parallel image generation? (Y/N): ")
+        if user_input.lower() == "y":
+            use_parallel = True
+            break
+        elif user_input.lower() == "n":
+            use_parallel = False
+            break
+        else:
+            print("Please enter either 'Y' or 'N'.")
 
+    # Run image generation either with multiple CPU cores, or sequentially
     t1 = time.perf_counter()
     if use_parallel:
         num_workers = min(os.cpu_count() or 1, len(fonts))
@@ -260,7 +265,6 @@ def zip_dataset():
         num_images = len(image_files)
         for i, img_file in enumerate(image_files):
             print(f"\radding image {i+1}/{num_images}...", end="", flush=True)
-            # Preserve font subdirectory: FontName/FontName_0001.png
             arcname = img_file.relative_to(raw_dir)
             zipf.write(img_file, arcname=arcname)
         
@@ -293,7 +297,6 @@ def dataset_to_hf():
     
     if not zip_path.exists():
         print(f"Error: Zip file not found at {zip_path}")
-        print("Run zip_dataset() first.")
         return
     
     zip_size_mb = zip_path.stat().st_size / (1024 * 1024)
