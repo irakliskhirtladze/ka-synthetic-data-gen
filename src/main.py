@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
     # Uploading dataset to HF
     while True:
-        user_input = input("\nDo you want to upload zipped dataset ot Hugging Face? (Y/N): ?: ")
+        user_input = input("\nDo you want to upload zipped dataset ot Hugging Face? (Y/N) ?: ")
         if user_input.lower() == "y":
             dataset_to_hf()
             break

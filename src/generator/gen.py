@@ -136,7 +136,7 @@ def _generate_for_font(args: tuple) -> list[dict]:
             fonts=[font_path],
             language="ka",
             size=random.randint(32, 96),
-            skewing_angle=random.randint(0, 15),
+            skewing_angle=random.randint(0, 10),
             random_skew=True,
             blur=random.randint(0, 1),
             random_blur=True,
@@ -315,8 +315,6 @@ def dataset_to_hf():
     if not zip_path.exists():
         print(f"Error: Zip file not found at {zip_path}")
         return
-
-    zip_size_mb = zip_path.stat().st_size / (1024 * 1024)
     
     # Push to Hugging Face
     print(f"\nPushing to Hugging Face: {hf_dataset_repo}")
@@ -330,8 +328,6 @@ def dataset_to_hf():
             token=hf_token
         )
         print(f"Successfully uploaded to https://huggingface.co/datasets/{hf_dataset_repo}")
-        print(f"File: ka-ocr.zip ({zip_size_mb:.2f} MB)")
     except Exception as e:
         print(f"Failed to upload to Hugging Face: {e}")
-        print(f"Zip file saved locally at: {zip_path}")
 
