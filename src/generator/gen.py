@@ -148,9 +148,9 @@ def _generate_for_font(args: tuple) -> list[dict]:
                      random.randint(0, 10)),
             fit=random.choice([True, False]),
         )
-        
+
         img = next(generator)
-        
+
         if img is None:
             continue
 
@@ -158,18 +158,18 @@ def _generate_for_font(args: tuple) -> list[dict]:
         image_group_dir.mkdir(parents=True, exist_ok=True)
         file_name = f"{font_name}_{idx:04d}.png"
         img_save_path = Path(image_group_dir) / file_name
-        
+
         img.save(img_save_path)
         metadata.append({"file_name": f"{image_group_dir.stem}/{file_name}", "text": text})
 
-    print(f"Generated {len(metadata)} images for {font_name}")
-    
+    print(f"\nGenerated {len(metadata)} images for {font_name}")
+
     return metadata
 
 
 def generate_imgs(num_images_per_font: int):
     """Generate synthetic images for all fonts.
-    
+
     Args:
         num_images_per_font: Number of images to generate per font
         parallel_threshold: Use parallel processing if num_images_per_font >= this value
@@ -189,13 +189,13 @@ def generate_imgs(num_images_per_font: int):
     for font_path in fonts:
         no_numbers = font_not_supports_numbers(font_path)
         fonts_without_number_support[font_path] = no_numbers
-    
+
     fonts_no_nums = [Path(f).stem for f, no_support in fonts_without_number_support.items() if no_support]
     if fonts_no_nums:
         print(f"Fonts without number support: {', '.join(fonts_no_nums)}\n")
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     print(f"Generating images for {len(fonts)} fonts...")
     print(f"Images per font: {num_images_per_font}")
     print(f"Total images to generate: {len(fonts) * num_images_per_font}")
@@ -229,10 +229,10 @@ def generate_imgs(num_images_per_font: int):
     if use_parallel:
         num_workers = min(os.cpu_count() or 1, len(fonts))
         print(f"\nUsing parallel processing with {num_workers} workers...\n")
-        
+
         with ProcessPoolExecutor(max_workers=num_workers) as executor:
             results = list(executor.map(_generate_for_font, font_args))
-        
+
         metadata = [item for result in results for item in result]
     else:
         print("\nUsing sequential processing...\n")
@@ -262,20 +262,20 @@ def zip_dataset():
     raw_dir = data_dir / "raw"
     metadata_file = data_dir / "metadata.csv"
     zip_path = data_dir / "ka-ocr.zip"
-    
+
     # Verify data exists
     if not raw_dir.exists() or not metadata_file.exists():
         print("Error: Dataset not found. Run generate_imgs() first.")
         return
-    
+
     # Find all images in subdirectories
     image_files = list(raw_dir.glob("**/*.png"))
     if not image_files:
         print("Error: No images found in data/raw/")
         return
-    
+
     print(f"\nCreating zip file with {len(image_files)} images...")
-    
+
     # Create zip file preserving subdirectory structure
     t1 = time.perf_counter()
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -284,10 +284,10 @@ def zip_dataset():
             print(f"\radding image {i+1}/{num_images}...", end="", flush=True)
             arcname = img_file.relative_to(raw_dir)
             zipf.write(img_file, arcname=arcname)
-        
+
         # Add metadata.csv to zip root
         zipf.write(metadata_file, arcname="metadata.csv")
-    
+
     zip_size_mb = zip_path.stat().st_size / (1024 * 1024)
     t2 = time.perf_counter()
     print(f"\nCreated {zip_path.name} ({zip_size_mb:.2f} MB)")
@@ -297,25 +297,25 @@ def zip_dataset():
 def dataset_to_hf():
     """Upload existing zip file to Hugging Face Hub."""
     load_dotenv()
-    
+
     # Check for required environment variables
     hf_token = os.getenv("HF_TOKEN")
     hf_dataset_repo = os.getenv("HF_DATASET_REPO")
-    
+
     if not hf_token:
         print("Error: HF_TOKEN not found in .env file")
         return
-    
+
     if not hf_dataset_repo:
         print("Error: HF_DATASET_REPO not found in .env file")
         return
-    
+
     zip_path = BASE_DIR / "data" / "ka-ocr.zip"
-    
+
     if not zip_path.exists():
         print(f"Error: Zip file not found at {zip_path}")
         return
-    
+
     zip_size_mb = zip_path.stat().st_size / (1024 * 1024)
     
     # Push to Hugging Face
